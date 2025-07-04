@@ -92,7 +92,7 @@ const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
-app.use('/api/login', apiLimiter);
+app.use('/api', apiLimiter);
 
 const loginLimiter = rateLimit({
   windowMs: 30 * 60 * 1000, // 30 minutes
