@@ -16,7 +16,8 @@ services:
     networks:
       - app-network
     depends_on:
-      - db
+      db: # <--- CHANGED: Using the long syntax for depends_on
+        condition: service_healthy # <--- ADDED: This waits for the DB container to be "healthy"
 
   frontend:
     build:
@@ -30,16 +31,28 @@ services:
   db:
     image: mysql:8.0
     restart: unless-stopped
-    env_file: ./.env
+    env_file: ./.env # This loads MYSQL_ variables for the MySQL server itself
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
+      # <--- IMPORTANT: Add these if they are not already implicitly defined in your ./.env
+      #      The healthcheck needs a user/password to ping MySQL.
+      #      These should match the DB_USER/DB_PASSWORD your backend uses.
+      MYSQL_USER: ${MYSQL_USER} # Assuming this variable is in your root ./.env
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD} # Assuming this variable is in your root ./.env
     ports:
-      - "3306:3306"
+      - "3306:3306" # Keeping this port mapping as requested
     volumes:
       - db-data:/var/lib/mysql
     networks:
       - app-network
+    healthcheck: # <--- ADDED: Healthcheck for the MySQL database
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
+      interval: 5s # Check every 5 seconds
+      timeout: 5s # Timeout after 5 seconds
+      retries: 5 # Retry 5 times before marking as unhealthy
+      start_period: 30s # Give MySQL 30 seconds to start up initially before checking
+                       # This helps prevent false negatives during initial boot.
 
 networks:
   app-network:
