@@ -12,7 +12,7 @@ function App() {
   return (
     <Container>
       <Routes>
-        {/* Publicly accessible login page */}
+      {/* Publicly accessible login page */}
        {/* Public Routes */}
       <Route path="/" element={<FileUpload />} />
       <Route path="/login" element={<LoginPage />} />
