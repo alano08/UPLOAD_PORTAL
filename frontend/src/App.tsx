@@ -13,14 +13,15 @@ function App() {
     <Container>
       <Routes>
         {/* Publicly accessible login page */}
-        <Route path="/login" element={<LoginPage />} />
+       {/* Public Routes */}
+      <Route path="/" element={<FileUpload />} />
+      <Route path="/login" element={<LoginPage />} />
 
-        {/* Routes that require authentication */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/" element={<FileUpload />} />
-          <Route path="/dashboard" element={<AdminDashboard />} />
-        </Route>
-      </Routes>
+      {/* Protected Routes */}
+      <Route element={<ProtectedRoute />}>
+        <Route path="/dashboard" element={<AdminDashboard />} />
+      </Route>
+            </Routes>
     </Container>
   );
 }
