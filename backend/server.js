@@ -195,6 +195,20 @@ apiRouter.post('/login', loginLimiter, [
     const { password } = req.body;
     const storedHash = process.env.ADMIN_PASSWORD_HASH;
 
+    // --- START DEBUG LOGS (REMOVE THESE BEFORE PRODUCTION) ---
+    console.log("\n--- LOGIN ATTEMPT DEBUG ---");
+    console.log("1. Password received from frontend (req.body.password):", password);
+    console.log("2. Hash loaded from .env (process.env.ADMIN_PASSWORD_HASH):", storedHash);
+    if (typeof password !== 'string' || typeof storedHash !== 'string') {
+      console.error("DEBUG ERROR: Password or storedHash is not a string!");
+    } else {
+      console.log("   Length of received password:", password.length);
+      console.log("   Length of stored hash:", storedHash.length);
+      // This comparison will likely be false as password is plain text and storedHash is bcrypt
+      console.log("   Are they identical (direct string comparison):", password === storedHash);
+    }
+    // --- END DEBUG LOGS ---
+
     if (!storedHash) {
       console.error("FATAL: ADMIN_PASSWORD_HASH is not configured in .env file.");
       return res.status(500).json({ message: "Server configuration error." });
@@ -202,16 +216,25 @@ apiRouter.post('/login', loginLimiter, [
 
     const isMatch = await bcrypt.compare(password, storedHash);
 
+    // --- START DEBUG LOGS ---
+    console.log("3. bcrypt.compare result (isMatch):", isMatch); // THIS IS THE KEY OUTPUT!
+    console.log("--- END LOGIN ATTEMPT DEBUG ---\n");
+    // --- END DEBUG LOGS ---
+
     if (isMatch) {
       req.session.isAdmin = true;
       req.session.save(err => {
-        if (err) return next(err);
+        if (err) {
+          console.error("Session save error after login:", err); // Log potential session issues here
+          return next(err);
+        }
         res.status(200).json({ message: 'Login successful' });
       });
     } else {
       res.status(401).json({ message: 'Invalid credentials' });
     }
   } catch (error) {
+    console.error("Login route try-catch error:", error); // Log any unexpected errors
     next(error);
   }
 });
