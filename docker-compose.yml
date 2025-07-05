@@ -7,7 +7,14 @@ services:
     build:
       context: ./backend # Path to your backend directory
     restart: unless-stopped
-    env_file: ./backend/.env # Load environment variables from a .env file
+    env_file: ./backend/.env # Still load app-specific variables from this file
+    environment: # <--- ADD THIS BLOCK
+      # Pass DB_ variables from the root .env into the backend container
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_PORT: ${DB_PORT} # If you have a DB_PORT variable
     ports:
       - "3000:3000"
     volumes:
@@ -16,43 +23,40 @@ services:
     networks:
       - app-network
     depends_on:
-      db: # <--- CHANGED: Using the long syntax for depends_on
-        condition: service_healthy # <--- ADDED: This waits for the DB container to be "healthy"
+      db:
+        condition: service_healthy
 
   frontend:
     build:
       context: ./frontend # Path to your frontend directory
     restart: unless-stopped
     ports:
-      - "8080:80" # Map host port 8080 to container port 80
+      - "8081:80" # Assuming you've chosen this port for frontend
     networks:
       - app-network
 
   db:
     image: mysql:8.0
     restart: unless-stopped
-    env_file: ./.env # This loads MYSQL_ variables for the MySQL server itself
+    # env_file: ./backend/.env # <--- THIS LINE SHOULD NOW BE DELETED OR COMMENTED OUT
     environment:
+      # These variables will be interpolated from the root .env file
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
-      # <--- IMPORTANT: Add these if they are not already implicitly defined in your ./.env
-      #      The healthcheck needs a user/password to ping MySQL.
-      #      These should match the DB_USER/DB_PASSWORD your backend uses.
-      MYSQL_USER: ${MYSQL_USER} # Assuming this variable is in your root ./.env
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD} # Assuming this variable is in your root ./.env
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
-      - "3306:3306" # Keeping this port mapping as requested
+      - "3306:3306"
     volumes:
       - db-data:/var/lib/mysql
     networks:
       - app-network
-    healthcheck: # <--- ADDED: Healthcheck for the MySQL database
+    healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
-      interval: 5s # Check every 5 seconds
-      timeout: 5s # Timeout after 5 seconds
-      retries: 5 # Retry 5 times before marking as unhealthy
-      start_period: 30s # Give MySQL 30 seconds to start up initially before checking
-                       # This helps prevent false negatives during initial boot.
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
 networks:
   app-network:
